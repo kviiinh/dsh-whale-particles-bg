@@ -10,6 +10,14 @@ Topics: `dsh-plugin` · `deepseek-harness` · `cordis-plugin`
 
 ## English
 
+### Preview
+
+12-second capture of the whale field assembling from its scattered shell, breathing at idle, and being pushed around by the pointer (1908×956, H.264/AAC, 4.1 MB — `src/preview.mp4`):
+
+<video controls preload="metadata" width="100%" src="https://gitee.com/kviiin/dsh-whale-particles-bg/raw/main/src/preview.mp4"><source src="https://gitee.com/kviiin/dsh-whale-particles-bg/raw/main/src/preview.mp4" type="video/mp4"></video>
+
+If the player above is stripped by the renderer you are reading this on, play the file directly: **[src/preview.mp4](https://gitee.com/kviiin/dsh-whale-particles-bg/raw/main/src/preview.mp4)** (4.1 MB).
+
 ### What it is
 
 | Layer | Content |
@@ -52,6 +60,7 @@ The script stages the sources into `<checkout>/packages/client/dsh-whale-particl
 | `src/client/index.tsx` | Browser half: the two canvas components and the `shell.overlay` registration |
 | `src/client/whale-path.ts` | The WHALE path constant |
 | `src/client/global.css` | Page background color/gradient (injected as a tagged `<style>` at factory execution) |
+| `src/preview.mp4` | 12s screen capture for the Preview section above (repo-only: `files` excludes `src/`, so npm publishing stays lean) |
 | `src/index.ts` | Node half: an empty `apply` (a pure UI plugin only needs to exist in the Loader) |
 | `cordis.patch.yml` | The bundle layer: inserts the `whale-particles-bg` row |
 | `lib/` | Built artifacts: `index.js` (node half) + `client.js` + `client.js.map` |
@@ -83,6 +92,14 @@ The community market ([dsh-market](https://github.com/dsh-market/dsh-market)) is
 - **挂载点**：`shell.overlay`（由 `@deepseek-ai/dsh-client-ui-layout` 声明的 root 作用域 list 槽位），两个全屏 fixed canvas、`pointer-events: none`
 - **帧率**：`requestAnimationFrame` 限 30fps（`FRAME_MS = 33`）；页面隐藏时浏览器自动暂停 rAF
 
+### 预览
+
+12 秒录屏：粒子从散点聚合、空闲呼吸，以及指针进入时的旋转斥力（1908×956，H.264/AAC，4.1 MB，见 `src/preview.mp4`）：
+
+<video controls preload="metadata" width="100%" src="https://gitee.com/kviiin/dsh-whale-particles-bg/raw/main/src/preview.mp4"><source src="https://gitee.com/kviiin/dsh-whale-particles-bg/raw/main/src/preview.mp4" type="video/mp4"></video>
+
+若内联播放器被渲染器过滤（GitHub 等平台会），可直接打开：**[src/preview.mp4](https://gitee.com/kviiin/dsh-whale-particles-bg/raw/main/src/preview.mp4)**（4.1 MB）。
+
 ### 目录
 
 | 文件 | 说明 |
@@ -90,6 +107,7 @@ The community market ([dsh-market](https://github.com/dsh-market/dsh-market)) is
 | `src/client/index.tsx` | 浏览器半边：两个 canvas 组件 + `shell.overlay` 注册 |
 | `src/client/whale-path.ts` | WHALE 路径常量（从原动态插件备份机械提取，md5 一致） |
 | `src/client/global.css` | 页面背景色/渐变（构建时以带标记的 `<style>` 注入） |
+| `src/preview.mp4` | 上方「预览」用的 12 秒录屏（仅随仓库分发：`files` 未收录 `src/`，npm 包不受影响） |
 | `src/index.ts` | Node 半边：空 `apply`（纯 UI 插件只需在 Loader 里出现） |
 | `cordis.patch.yml` | bundle 层：插入 `whale-particles-bg` 这一行 |
 | `lib/` | 构建产物：`index.js`（node 半）+ `client.js`（`__ModuleLoader__` 工厂 bundle）+ sourcemap |
