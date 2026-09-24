@@ -2,7 +2,7 @@
 
 [English](#english) | [中文](#中文)
 
-Animated whale particle background for the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (`dsh`) Web UI — the WHALE-silhouette particle field plus the official dot-grid layer, registered into the frame-wide `shell.overlay` seat.
+Animated whale particle background for the [DeepSeek Harness](https://www.deepseek.com/harness/) (`dsh`) Web UI — the WHALE-silhouette particle field plus the official dot-grid layer, registered into the frame-wide `shell.overlay` seat.
 
 Topics: `dsh-plugin` · `deepseek-harness` · `cordis-plugin`
 
