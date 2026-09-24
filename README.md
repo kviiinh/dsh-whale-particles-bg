@@ -33,9 +33,8 @@ Prerequisites: a dsh deployment with the `dsh` CLI on `PATH` (or a source checko
 dsh plugin --profile web add git+https://github.com/kviiinh/dsh-whale-particles-bg.git
 
 #    other sources:
-#      mirror (Gitee) : dsh plugin --profile web add git+https://gitee.com/kviiin/dsh-whale-particles-bg.git
-#      local path     : dsh plugin --profile web add /abs/path/to/this/repo
-#      npm            : dsh plugin --profile web add dsh-whale-particles-bg   (if published)
+#      local path : dsh plugin --profile web add /abs/path/to/this/repo
+#      npm        : dsh plugin --profile web add dsh-whale-particles-bg   (if published)
 ```
 
 This package is a **bundle**: it declares `dsh.bundle`, so the install appends it to the profile's `dsh.profile.bundles` and the package's own `cordis.patch.yml` inserts the plugin row (`id: whale-particles-bg`). There is nothing to hand-edit, and `dsh plugin --profile web remove dsh-whale-particles-bg` removes both the dependency and the layer.
@@ -118,7 +117,6 @@ The community market ([dsh-market](https://github.com/dsh-market/dsh-market)) is
 
 ```sh
 dsh plugin --profile web add git+https://github.com/kviiinh/dsh-whale-particles-bg.git
-# 镜像（Gitee）：dsh plugin --profile web add git+https://gitee.com/kviiin/dsh-whale-particles-bg.git
 # 或本地路径：dsh plugin --profile web add /绝对路径/dsh-whale-particles-bg
 ```
 
