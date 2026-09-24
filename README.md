@@ -12,13 +12,11 @@ Topics: `dsh-plugin` · `deepseek-harness` · `cordis-plugin`
 
 ### Preview
 
-12-second capture of the whale field assembling from its scattered shell, breathing at idle, and being pushed around by the pointer (`src/preview.mp4`, 1908×956, H.264/AAC, 4.1 MB):
+12-second capture of the whale field assembling from its scattered shell, breathing at idle, and being pushed around by the pointer (`src/preview.gif`, 720×360, 10fps, 2.8 MB — converted from `src/preview.mp4`, 1908×956, H.264/AAC, 12.7s, 4.1 MB):
 
-![whale particle background preview](https://gitee.com/kviiin/dsh-whale-particles-bg/raw/main/src/preview.mp4)
+![whale particle background preview](https://gitee.com/kviiin/dsh-whale-particles-bg/raw/main/src/preview.gif)
 
-<video controls preload="metadata" width="100%" src="https://gitee.com/kviiin/dsh-whale-particles-bg/raw/main/src/preview.mp4"><source src="https://gitee.com/kviiin/dsh-whale-particles-bg/raw/main/src/preview.mp4" type="video/mp4"></video>
-
-Gitee turns a markdown image whose target is an `.mp4` into its built-in player (`gitee-md-video`), so the image line above is the one that plays there. Gitee and GitHub drop raw HTML media, so the `<video>` element only covers renderers that keep HTML5 (GitLab, editor previews). Direct file: **[src/preview.mp4](https://gitee.com/kviiin/dsh-whale-particles-bg/raw/main/src/preview.mp4)** (4.1 MB).
+The animated GIF above plays inline by itself. Gitee's README renderer strips every video form — raw `<video>`, `.mp4` markdown images and `<iframe>` all render as an empty paragraph there — so a real player box cannot be embedded from a repository file; the full-quality video with audio is here: **[src/preview.mp4](https://gitee.com/kviiin/dsh-whale-particles-bg/raw/main/src/preview.mp4)** (4.1 MB).
 
 ### What it is
 
@@ -63,6 +61,7 @@ The script stages the sources into `<checkout>/packages/client/dsh-whale-particl
 | `src/client/whale-path.ts` | The WHALE path constant |
 | `src/client/global.css` | Page background color/gradient (injected as a tagged `<style>` at factory execution) |
 | `src/preview.mp4` | 12s screen capture for the Preview section above (repo-only: `files` excludes `src/`, so npm publishing stays lean) |
+| `src/preview.gif` | Animated GIF (720×360, 10fps) converted from `preview.mp4`; this is what the Preview section embeds |
 | `src/index.ts` | Node half: an empty `apply` (a pure UI plugin only needs to exist in the Loader) |
 | `cordis.patch.yml` | The bundle layer: inserts the `whale-particles-bg` row |
 | `lib/` | Built artifacts: `index.js` (node half) + `client.js` + `client.js.map` |
@@ -96,13 +95,11 @@ The community market ([dsh-market](https://github.com/dsh-market/dsh-market)) is
 
 ### 预览
 
-12 秒录屏：粒子从散点聚合、空闲呼吸，以及指针进入时的旋转斥力（`src/preview.mp4`，1908×956，H.264/AAC，4.1 MB）：
+12 秒录屏：粒子从散点聚合、空闲呼吸，以及指针进入时的旋转斥力（动图 `src/preview.gif`，720×360，10fps，2.8 MB；由 `src/preview.mp4` 转出，源片 1908×956，H.264/AAC，12.7s，4.1 MB）：
 
-![鲸鱼粒子背景预览](https://gitee.com/kviiin/dsh-whale-particles-bg/raw/main/src/preview.mp4)
+![鲸鱼粒子背景预览](https://gitee.com/kviiin/dsh-whale-particles-bg/raw/main/src/preview.gif)
 
-<video controls preload="metadata" width="100%" src="https://gitee.com/kviiin/dsh-whale-particles-bg/raw/main/src/preview.mp4"><source src="https://gitee.com/kviiin/dsh-whale-particles-bg/raw/main/src/preview.mp4" type="video/mp4"></video>
-
-Gitee 会把目标为 `.mp4` 的 markdown 图片语法自动换成内置播放器（`gitee-md-video`），所以真正在 Gitee 上播放的是上面那行图片；Gitee 与 GitHub 都会过滤原始 HTML 媒体，`<video>` 标签只对保留 HTML5 的渲染器（GitLab、编辑器预览）有效。直接打开：**[src/preview.mp4](https://gitee.com/kviiin/dsh-whale-particles-bg/raw/main/src/preview.mp4)**（4.1 MB）。
+上面的动图会自动循环播放。Gitee 的 README 渲染器会过滤所有视频形式——原始 `<video>`、`.mp4` 图片语法、`<iframe>` 在 README 里都只会渲染成一个空段落——所以没法直接用仓库里的文件嵌出真正的播放器；要看带声音的完整画质：**[src/preview.mp4](https://gitee.com/kviiin/dsh-whale-particles-bg/raw/main/src/preview.mp4)**（4.1 MB）。
 
 ### 目录
 
@@ -112,6 +109,7 @@ Gitee 会把目标为 `.mp4` 的 markdown 图片语法自动换成内置播放�
 | `src/client/whale-path.ts` | WHALE 路径常量（从原动态插件备份机械提取，md5 一致） |
 | `src/client/global.css` | 页面背景色/渐变（构建时以带标记的 `<style>` 注入） |
 | `src/preview.mp4` | 上方「预览」用的 12 秒录屏（仅随仓库分发：`files` 未收录 `src/`，npm 包不受影响） |
+| `src/preview.gif` | 由 `preview.mp4` 转出的动图（720×360，10fps），即上方「预览」内嵌的文件 |
 | `src/index.ts` | Node 半边：空 `apply`（纯 UI 插件只需在 Loader 里出现） |
 | `cordis.patch.yml` | bundle 层：插入 `whale-particles-bg` 这一行 |
 | `lib/` | 构建产物：`index.js`（node 半）+ `client.js`（`__ModuleLoader__` 工厂 bundle）+ sourcemap |
