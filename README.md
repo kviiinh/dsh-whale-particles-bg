@@ -12,11 +12,13 @@ Topics: `dsh-plugin` · `deepseek-harness` · `cordis-plugin`
 
 ### Preview
 
-12-second capture of the whale field assembling from its scattered shell, breathing at idle, and being pushed around by the pointer (1908×956, H.264/AAC, 4.1 MB — `src/preview.mp4`):
+12-second capture of the whale field assembling from its scattered shell, breathing at idle, and being pushed around by the pointer (`src/preview.mp4`, 1908×956, H.264/AAC, 4.1 MB):
+
+![whale particle background preview](https://gitee.com/kviiin/dsh-whale-particles-bg/raw/main/src/preview.mp4)
 
 <video controls preload="metadata" width="100%" src="https://gitee.com/kviiin/dsh-whale-particles-bg/raw/main/src/preview.mp4"><source src="https://gitee.com/kviiin/dsh-whale-particles-bg/raw/main/src/preview.mp4" type="video/mp4"></video>
 
-If the player above is stripped by the renderer you are reading this on, play the file directly: **[src/preview.mp4](https://gitee.com/kviiin/dsh-whale-particles-bg/raw/main/src/preview.mp4)** (4.1 MB).
+Gitee turns a markdown image whose target is an `.mp4` into its built-in player (`gitee-md-video`), so the image line above is the one that plays there. Gitee and GitHub drop raw HTML media, so the `<video>` element only covers renderers that keep HTML5 (GitLab, editor previews). Direct file: **[src/preview.mp4](https://gitee.com/kviiin/dsh-whale-particles-bg/raw/main/src/preview.mp4)** (4.1 MB).
 
 ### What it is
 
@@ -94,11 +96,13 @@ The community market ([dsh-market](https://github.com/dsh-market/dsh-market)) is
 
 ### 预览
 
-12 秒录屏：粒子从散点聚合、空闲呼吸，以及指针进入时的旋转斥力（1908×956，H.264/AAC，4.1 MB，见 `src/preview.mp4`）：
+12 秒录屏：粒子从散点聚合、空闲呼吸，以及指针进入时的旋转斥力（`src/preview.mp4`，1908×956，H.264/AAC，4.1 MB）：
+
+![鲸鱼粒子背景预览](https://gitee.com/kviiin/dsh-whale-particles-bg/raw/main/src/preview.mp4)
 
 <video controls preload="metadata" width="100%" src="https://gitee.com/kviiin/dsh-whale-particles-bg/raw/main/src/preview.mp4"><source src="https://gitee.com/kviiin/dsh-whale-particles-bg/raw/main/src/preview.mp4" type="video/mp4"></video>
 
-若内联播放器被渲染器过滤（GitHub 等平台会），可直接打开：**[src/preview.mp4](https://gitee.com/kviiin/dsh-whale-particles-bg/raw/main/src/preview.mp4)**（4.1 MB）。
+Gitee 会把目标为 `.mp4` 的 markdown 图片语法自动换成内置播放器（`gitee-md-video`），所以真正在 Gitee 上播放的是上面那行图片；Gitee 与 GitHub 都会过滤原始 HTML 媒体，`<video>` 标签只对保留 HTML5 的渲染器（GitLab、编辑器预览）有效。直接打开：**[src/preview.mp4](https://gitee.com/kviiin/dsh-whale-particles-bg/raw/main/src/preview.mp4)**（4.1 MB）。
 
 ### 目录
 
