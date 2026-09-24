@@ -1,0 +1,8 @@
+body {
+  background-color: #e9eef5 !important;
+  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.04) 38%, rgba(255, 255, 255, 0.02) 62%, rgba(255, 255, 255, 0.3) 100%) !important;
+}
+body[data-ds-dark-theme] {
+  background-color: #101113 !important;
+  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.015) 38%, rgba(255, 255, 255, 0.01) 62%, rgba(255, 255, 255, 0.03) 100%) !important;
+}

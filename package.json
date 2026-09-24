@@ -1,0 +1,61 @@
+{
+  "name": "dsh-whale-particles-bg",
+  "version": "1.0.0",
+  "description": "Animated whale particle background for the DeepSeek Harness (dsh) Web UI: the WHALE-silhouette particle field with pointer repulsion plus the official dot-grid layer, registered into the frame-wide shell.overlay seat.",
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": {
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "default": "./lib/client.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-renderer",
+        "@deepseek-ai/dsh-client-ui-layout"
+      ],
+      "platform": "web"
+    }
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml"
+  ],
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "cordis",
+    "cordis-plugin",
+    "canvas",
+    "particles",
+    "background"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://gitee.com/kviiin/dsh-whale-particles-bg.git"
+  },
+  "homepage": "https://gitee.com/kviiin/dsh-whale-particles-bg#readme",
+  "bugs": {
+    "url": "https://gitee.com/kviiin/dsh-whale-particles-bg/issues"
+  },
+  "author": "kviiin <kviiin@users.noreply.gitee.com>",
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.2"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-layout": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-renderer": "workspace:^",
+    "@types/react": "~18.3.1",
+    "react": "^18.2.0"
+  }
+}

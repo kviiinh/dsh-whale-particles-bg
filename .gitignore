@@ -1,0 +1,7 @@
+# Build intermediates and local noise. `lib/` is intentionally committed: the
+# browser bundle needs the dsh build toolchain (packages/client/tsdown.client.ts),
+# so a git-installed copy must ship prebuilt artifacts to be loadable as-is.
+*.tsbuildinfo
+node_modules/
+.DS_Store
+Thumbs.db
