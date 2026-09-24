@@ -14,7 +14,7 @@ Topics: `dsh-plugin` · `deepseek-harness` · `cordis-plugin`
 
 12-second capture of the whale field assembling from its scattered shell, breathing at idle, and being pushed around by the pointer (`src/preview.gif`, animated GIF, 720×360, 10fps, 12.6s, 2.8 MB):
 
-![whale particle background preview](https://gitee.com/kviiin/dsh-whale-particles-bg/raw/main/src/preview.gif)
+![whale particle background preview](https://raw.githubusercontent.com/kviiinh/dsh-whale-particles-bg/main/src/preview.gif)
 
 ### What it is
 
@@ -30,11 +30,12 @@ Both layers are fixed, full-viewport, click-through canvases. The theme is read 
 Prerequisites: a dsh deployment with the `dsh` CLI on `PATH` (or a source checkout, where `pnpm dsh …` works).
 
 ```sh
-dsh plugin --profile web add git+https://gitee.com/kviiin/dsh-whale-particles-bg.git
+dsh plugin --profile web add git+https://github.com/kviiinh/dsh-whale-particles-bg.git
 
 #    other sources:
-#      local path : dsh plugin --profile web add /abs/path/to/this/repo
-#      npm        : dsh plugin --profile web add dsh-whale-particles-bg   (if published)
+#      mirror (Gitee) : dsh plugin --profile web add git+https://gitee.com/kviiin/dsh-whale-particles-bg.git
+#      local path     : dsh plugin --profile web add /abs/path/to/this/repo
+#      npm            : dsh plugin --profile web add dsh-whale-particles-bg   (if published)
 ```
 
 This package is a **bundle**: it declares `dsh.bundle`, so the install appends it to the profile's `dsh.profile.bundles` and the package's own `cordis.patch.yml` inserts the plugin row (`id: whale-particles-bg`). There is nothing to hand-edit, and `dsh plugin --profile web remove dsh-whale-particles-bg` removes both the dependency and the layer.
@@ -97,7 +98,7 @@ The community market ([dsh-market](https://github.com/dsh-market/dsh-market)) is
 
 12 秒录屏：粒子从散点聚合、空闲呼吸，以及指针进入时的旋转斥力（动图 `src/preview.gif`，720×360，10fps，12.6s，2.8 MB）：
 
-![鲸鱼粒子背景预览](https://gitee.com/kviiin/dsh-whale-particles-bg/raw/main/src/preview.gif)
+![鲸鱼粒子背景预览](https://raw.githubusercontent.com/kviiinh/dsh-whale-particles-bg/main/src/preview.gif)
 
 ### 目录
 
@@ -116,7 +117,8 @@ The community market ([dsh-market](https://github.com/dsh-market/dsh-market)) is
 ### 安装
 
 ```sh
-dsh plugin --profile web add git+https://gitee.com/kviiin/dsh-whale-particles-bg.git
+dsh plugin --profile web add git+https://github.com/kviiinh/dsh-whale-particles-bg.git
+# 镜像（Gitee）：dsh plugin --profile web add git+https://gitee.com/kviiin/dsh-whale-particles-bg.git
 # 或本地路径：dsh plugin --profile web add /绝对路径/dsh-whale-particles-bg
 ```
 

@@ -41,11 +41,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://gitee.com/kviiin/dsh-whale-particles-bg.git"
+    "url": "git+https://github.com/kviiinh/dsh-whale-particles-bg.git"
   },
-  "homepage": "https://gitee.com/kviiin/dsh-whale-particles-bg#readme",
+  "homepage": "https://github.com/kviiinh/dsh-whale-particles-bg#readme",
   "bugs": {
-    "url": "https://gitee.com/kviiin/dsh-whale-particles-bg/issues"
+    "url": "https://github.com/kviiinh/dsh-whale-particles-bg/issues"
   },
   "author": "kviiin <kviiin@users.noreply.gitee.com>",
   "peerDependencies": {
