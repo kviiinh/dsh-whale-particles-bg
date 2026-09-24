@@ -16,8 +16,6 @@ Topics: `dsh-plugin` · `deepseek-harness` · `cordis-plugin`
 
 ![whale particle background preview](https://gitee.com/kviiin/dsh-whale-particles-bg/raw/main/src/preview.gif)
 
-The animated GIF above plays inline by itself. Gitee's README renderer strips every video form — raw `<video>`, `.mp4` markdown images and `<iframe>` all render as an empty paragraph there — so a video player box cannot be embedded from a repository file.
-
 ### What it is
 
 | Layer | Content |
@@ -97,8 +95,6 @@ The community market ([dsh-market](https://github.com/dsh-market/dsh-market)) is
 12 秒录屏：粒子从散点聚合、空闲呼吸，以及指针进入时的旋转斥力（动图 `src/preview.gif`，720×360，10fps，12.6s，2.8 MB）：
 
 ![鲸鱼粒子背景预览](https://gitee.com/kviiin/dsh-whale-particles-bg/raw/main/src/preview.gif)
-
-上面的动图会自动循环播放。Gitee 的 README 渲染器会过滤所有视频形式——原始 `<video>`、`.mp4` 图片语法、`<iframe>` 在 README 里都只会渲染成一个空段落——所以无法用仓库里的文件嵌出真正的播放器。
 
 ### 目录
 
