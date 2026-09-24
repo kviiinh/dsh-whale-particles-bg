@@ -11,38 +11,45 @@
 # bundle).
 #
 # Usage:
-#   scripts/build.sh [checkout-dir]
+#   scripts/build.sh <checkout-dir>
+#   DSH_CHECKOUT=/path/to/deepseek-harness scripts/build.sh
 #
-# Without an argument the newest the checkout named by DSH_CHECKOUT checkout is used.
+# The checkout is always given explicitly: no personal directory layout is
+# assumed, and nothing outside this package is read except the checkout named
+# here and removed again on exit.
 set -euo pipefail
 
 PKG_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PKG_NAME="dsh-whale-particles-bg"
-DEFAULT_ROOT="${DSH_CHECKOUT:-}"
 
-if [ "$#" -ge 1 ]; then
-  CHECKOUT="$1"
-else
-  CHECKOUT="$(ls -d "$DEFAULT_ROOT"/dsh-v* 2>/dev/null | sort -V | tail -1 || true)"
-fi
+CHECKOUT="${1:-${DSH_CHECKOUT:-}}"
 if [ -z "${CHECKOUT:-}" ] || [ ! -d "$CHECKOUT" ]; then
-  echo "build: no checkout found; pass one explicitly: scripts/build.sh /path/to/deepseek-harness" >&2
+  echo "build: pass a dsh checkout: scripts/build.sh /path/to/deepseek-harness" >&2
+  echo "       (or set DSH_CHECKOUT to the same path)" >&2
   exit 1
 fi
 
 STAGE="$CHECKOUT/packages/client/$PKG_NAME"
 
 # The checkout is the deployment's own source tree: whether the build succeeds
-# or fails, it must come back without the staged package or a rewritten lockfile.
+# or fails, it must come back exactly as it was. `pnpm install` rewrites the
+# lockfile and the workspace policy, so both are snapshotted up front and put
+# back verbatim — no `git checkout`, which would also discard the user's own
+# local edits to those files.
+SNAPSHOT="$(mktemp -d)"
+for file in pnpm-lock.yaml pnpm-workspace.yaml; do
+  [ -f "$CHECKOUT/$file" ] && cp "$CHECKOUT/$file" "$SNAPSHOT/$file"
+done
 cleanup() {
   if [ -d "$STAGE" ]; then
     echo "==> restoring the checkout"
     rm -rf "$STAGE"
     (cd "$CHECKOUT" && pnpm install >/dev/null 2>&1 || true)
-    if (cd "$CHECKOUT" && git rev-parse --git-dir >/dev/null 2>&1); then
-      (cd "$CHECKOUT" && git checkout -- pnpm-lock.yaml 2>/dev/null || true)
-    fi
+    for file in pnpm-lock.yaml pnpm-workspace.yaml; do
+      [ -f "$SNAPSHOT/$file" ] && cp "$SNAPSHOT/$file" "$CHECKOUT/$file"
+    done
   fi
+  rm -rf "$SNAPSHOT"
 }
 trap cleanup EXIT
 
@@ -70,7 +77,16 @@ echo "==> tsdown (lib/types -> lib/index.js + lib/client.js)"
 echo "==> collecting artifacts"
 rm -rf "$PKG_DIR/lib"
 cp -r "$STAGE/lib" "$PKG_DIR/lib"
+# TypeScript intermediates are not part of the package surface (package.json
+# exposes lib/index.js and lib/client.js only), so they are not shipped.
+rm -rf "$PKG_DIR/lib/types"
 rm -f "$PKG_DIR/lib/tsconfig.tsbuildinfo"
+
+# The client preset bakes absolute source paths into virtual module ids, which
+# would ship the host user name and checkout location to every browser. Scrub
+# them and fail the build if anything machine-specific survived.
+echo "==> sanitizing artifacts"
+node "$PKG_DIR/scripts/sanitize-artifacts.mjs" "$PKG_DIR"
 
 echo "==> artifacts"
 ls -la "$PKG_DIR/lib"
