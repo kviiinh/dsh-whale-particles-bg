@@ -69,6 +69,72 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 /**
+ * Live box of one fixed, full-viewport canvas plus its cached viewport origin.
+ *
+ * Nothing in the animation path may read layout: during token streaming the chat
+ * DOM is dirty almost every frame, so a `getBoundingClientRect()` in a
+ * `mousemove` handler (or a `clientWidth` read per frame) forces a synchronous
+ * re-layout of the whole page and serializes the background with the renderer.
+ * The box therefore arrives from a `ResizeObserver`, and the origin is cached
+ * here — refreshed only when the box or the viewport actually changes.
+ */
+interface CanvasBox {
+  /** Canvas box in CSS pixels; zero until the first observation. */
+  width: number
+  height: number
+  /** Cached canvas origin in viewport coordinates, for pointer conversion. */
+  originX: number
+  originY: number
+}
+
+/**
+ * Keep one canvas' backing store and cached geometry in sync with its box.
+ * @param canvas - the canvas element.
+ * @param context - its 2D context (the transform is reset with the surface).
+ * @param box - the mutable geometry record the layer reads every frame.
+ * @param onBoxChange - invoked after the box changed, for layer-owned rebuilds.
+ * @returns a disposer that disconnects the observer and the viewport listener.
+ */
+function trackCanvasBox(
+  canvas: HTMLCanvasElement,
+  context: CanvasRenderingContext2D,
+  box: CanvasBox,
+  onBoxChange: () => void,
+): () => void {
+  const dpr = Math.min(window.devicePixelRatio || 1, DPR_CAP)
+  const refreshOrigin = (): void => {
+    const rect = canvas.getBoundingClientRect()
+    box.originX = rect.left
+    box.originY = rect.top
+  }
+  const apply = (width: number, height: number): void => {
+    if (width === box.width && height === box.height) return
+    box.width = width
+    box.height = height
+    canvas.width = Math.max(1, Math.round(width * dpr))
+    canvas.height = Math.max(1, Math.round(height * dpr))
+    context.setTransform(dpr, 0, 0, dpr, 0, 0)
+    refreshOrigin()
+    onBoxChange()
+  }
+  const observer = new ResizeObserver((entries) => {
+    const entry = entries[0]
+    if (entry !== undefined) apply(entry.contentRect.width, entry.contentRect.height)
+  })
+  observer.observe(canvas)
+  // Exactly one synchronous read, at mount: the first frame must not draw into a
+  // zero-sized surface, and the origin is needed before the first pointer event.
+  apply(canvas.clientWidth || window.innerWidth, canvas.clientHeight || window.innerHeight)
+  // The canvases are fixed to the viewport, so the cached origin only ever
+  // changes when the viewport does — never during animation.
+  window.addEventListener('resize', refreshOrigin, { passive: true })
+  return () => {
+    observer.disconnect()
+    window.removeEventListener('resize', refreshOrigin)
+  }
+}
+
+/**
  * The official dot-grid layer: a square lattice that stretches lines between
  * neighbours and swells under the pointer.
  */
@@ -82,19 +148,17 @@ function DotGridCanvas(): React.ReactElement {
     if (g === null) return
 
     const coarse = pointerIsCoarse()
-    const dpr = Math.min(window.devicePixelRatio || 1, DPR_CAP)
     const pts: GridDot[] = []
     let cols = 0
     let rows = 0
-    let cw = 0
-    let ch = 0
+    const box: CanvasBox = { width: 0, height: 0, originX: 0, originY: 0 }
     const mouse = { x: NaN, y: NaN }
 
     const build = (): void => {
-      cols = Math.ceil(cw / GRID_STEP) + 1
-      rows = Math.ceil(ch / GRID_STEP) + 1
-      const ox = (cw - (cols - 1) * GRID_STEP) / 2
-      const oy = (ch - (rows - 1) * GRID_STEP) / 2
+      cols = Math.ceil(box.width / GRID_STEP) + 1
+      rows = Math.ceil(box.height / GRID_STEP) + 1
+      const ox = (box.width - (cols - 1) * GRID_STEP) / 2
+      const oy = (box.height - (rows - 1) * GRID_STEP) / 2
       pts.length = 0
       for (let n = 0; n < rows; n += 1) {
         for (let r = 0; r < cols; r += 1) {
@@ -105,25 +169,19 @@ function DotGridCanvas(): React.ReactElement {
       }
     }
 
+    const disposeBox = trackCanvasBox(canvas, g, box, build)
+
     const onMove = (e: MouseEvent): void => {
-      const rect = canvas.getBoundingClientRect()
-      mouse.x = e.clientX - rect.left
-      mouse.y = e.clientY - rect.top
+      mouse.x = e.clientX - box.originX
+      mouse.y = e.clientY - box.originY
     }
     if (!coarse) window.addEventListener('mousemove', onMove)
 
     const draw = (): void => {
-      const w = canvas.clientWidth
-      const h = canvas.clientHeight
-      if (w !== cw || h !== ch) {
-        cw = w
-        ch = h
-        canvas.width = w * dpr
-        canvas.height = h * dpr
-        g.setTransform(dpr, 0, 0, dpr, 0, 0)
-        build()
-      }
-      g.clearRect(0, 0, cw, ch)
+      const w = box.width
+      const h = box.height
+      if (w === 0 || h === 0) return
+      g.clearRect(0, 0, w, h)
       const mx = mouse.x
       const my = mouse.y
       const dark = isDark()
@@ -220,6 +278,7 @@ function DotGridCanvas(): React.ReactElement {
     return () => {
       window.cancelAnimationFrame(raf)
       if (!coarse) window.removeEventListener('mousemove', onMove)
+      disposeBox()
     }
   }, [])
 
@@ -246,9 +305,7 @@ function WhaleCanvas(): React.ReactElement {
     const g = canvas.getContext('2d')
     if (g === null) return
 
-    const dpr = Math.min(window.devicePixelRatio || 1, DPR_CAP)
-    let cw = 0
-    let ch = 0
+    const box: CanvasBox = { width: 0, height: 0, originX: 0, originY: 0 }
 
     /** Rasterize the silhouette once and return its sampled points. */
     const sample = (): { u: number, v: number }[] => {
@@ -291,11 +348,12 @@ function WhaleCanvas(): React.ReactElement {
       })
     }
 
+    const disposeBox = trackCanvasBox(canvas, g, box, () => { /* geometry only */ })
+
     const mouse = { x: NaN, y: NaN }
     const onMove = (e: MouseEvent): void => {
-      const rect = canvas.getBoundingClientRect()
-      mouse.x = e.clientX - rect.left
-      mouse.y = e.clientY - rect.top
+      mouse.x = e.clientX - box.originX
+      mouse.y = e.clientY - box.originY
     }
     const onLeave = (): void => {
       mouse.x = NaN
@@ -311,16 +369,10 @@ function WhaleCanvas(): React.ReactElement {
     const mst = { smX: 0, smY: 0, hasMoved: false, active: false, strength: 0 }
 
     const draw = (): void => {
-      const w = canvas.clientWidth
-      const h = canvas.clientHeight
-      if (w !== cw || h !== ch) {
-        cw = w
-        ch = h
-        canvas.width = w * dpr
-        canvas.height = h * dpr
-        g.setTransform(dpr, 0, 0, dpr, 0, 0)
-      }
-      g.clearRect(0, 0, cw, ch)
+      const w = box.width
+      const h = box.height
+      if (w === 0 || h === 0) return
+      g.clearRect(0, 0, w, h)
       if (N === 0) return
 
       const size = Math.min(w * 0.8, h * 0.7) * 1.5
@@ -446,6 +498,7 @@ function WhaleCanvas(): React.ReactElement {
       window.cancelAnimationFrame(raf)
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseleave', onLeave)
+      disposeBox()
     }
   }, [])
 
