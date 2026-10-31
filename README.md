@@ -12,7 +12,7 @@ Topics: `dsh-plugin` · `deepseek-harness` · `cordis-plugin`
 
 ### Preview
 
-12-second capture of the whale field assembling from its scattered shell, breathing at idle, and being pushed around by the pointer (`src/preview.gif`, animated GIF, 720×360, 10fps, 12.6s, 2.8 MB):
+7.5-second capture of the whale field assembling from its scattered shell, breathing at idle, and being pushed around by the pointer (`src/preview.gif`, animated GIF, 900×487, 12fps, 7.5s, 3.2 MB):
 
 ![whale particle background preview](https://raw.githubusercontent.com/kviiinh/dsh-whale-particles-bg/main/src/preview.gif)
 
@@ -70,7 +70,7 @@ The last step is `scripts/sanitize-artifacts.mjs`, which scrubs machine-specific
 | `src/client/index.tsx` | Browser half: the two canvas components and the `shell.overlay` registration |
 | `src/client/whale-path.ts` | The WHALE path constant |
 | `src/client/global.css` | Page background color/gradient (injected as a tagged `<style>` at factory execution) |
-| `src/preview.gif` | Animated GIF preview (720×360, 10fps) embedded by the Preview section above |
+| `src/preview.gif` | Animated GIF preview (900×487, 12fps) embedded by the Preview section above |
 | `src/index.ts` | Node half: an empty `apply` (a pure UI plugin only needs to exist in the Loader) |
 | `cordis.patch.yml` | The bundle layer: inserts the `whale-particles-bg` row |
 | `lib/` | Built artifacts: `index.js` (node half) + `client.js` + `client.js.map` |
@@ -105,7 +105,7 @@ The community market ([dsh-market](https://github.com/dsh-market/dsh-market)) is
 
 ### 预览
 
-12 秒录屏：粒子从散点聚合、空闲呼吸，以及指针进入时的旋转斥力（动图 `src/preview.gif`，720×360，10fps，12.6s，2.8 MB）：
+7.5 秒录屏：粒子从散点聚合、空闲呼吸，以及指针进入时的旋转斥力（动图 `src/preview.gif`，900×487，12fps，7.5s，3.2 MB）：
 
 ![鲸鱼粒子背景预览](https://raw.githubusercontent.com/kviiinh/dsh-whale-particles-bg/main/src/preview.gif)
 
@@ -116,7 +116,7 @@ The community market ([dsh-market](https://github.com/dsh-market/dsh-market)) is
 | `src/client/index.tsx` | 浏览器半边：两个 canvas 组件 + `shell.overlay` 注册 |
 | `src/client/whale-path.ts` | WHALE 路径常量（从原动态插件备份机械提取，md5 一致） |
 | `src/client/global.css` | 页面背景色/渐变（构建时以带标记的 `<style>` 注入） |
-| `src/preview.gif` | 上方「预览」内嵌的动图（720×360，10fps） |
+| `src/preview.gif` | 上方「预览」内嵌的动图（900×487，12fps） |
 | `src/index.ts` | Node 半边：空 `apply`（纯 UI 插件只需在 Loader 里出现） |
 | `cordis.patch.yml` | bundle 层：插入 `whale-particles-bg` 这一行 |
 | `lib/` | 构建产物：`index.js`（node 半）+ `client.js`（`__ModuleLoader__` 工厂 bundle）+ sourcemap |
