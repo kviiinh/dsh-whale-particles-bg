@@ -1,6 +1,6 @@
 /**
  * Whale particle background, browser half: two canvases in the frame-wide
- * `shell.overlay` seat — the official dot-grid layer underneath (z-index 0) and
+ * `shell.overlay` seat 鈥?the official dot-grid layer underneath (z-index 0) and
  * the WHALE-silhouette particle field above it (z-index 1). Both are fixed,
  * full-viewport and click-through; the theme is read from
  * `body[data-ds-dark-theme]` on every frame, so the field follows light/dark
@@ -49,6 +49,9 @@ interface Particle {
   /** Current position in viewport space, normalized. */
   cx: number
   cy: number
+  /** Leftover pointer offset in CSS px; decays every frame so the particle drifts home. */
+  ox: number
+  oy: number
   /** Per-particle render-size seed. */
   readonly s: number
 }
@@ -76,7 +79,7 @@ function clamp(value: number, min: number, max: number): number {
  * `mousemove` handler (or a `clientWidth` read per frame) forces a synchronous
  * re-layout of the whole page and serializes the background with the renderer.
  * The box therefore arrives from a `ResizeObserver`, and the origin is cached
- * here — refreshed only when the box or the viewport actually changes.
+ * here 鈥?refreshed only when the box or the viewport actually changes.
  */
 interface CanvasBox {
   /** Canvas box in CSS pixels; zero until the first observation. */
@@ -126,7 +129,7 @@ function trackCanvasBox(
   // zero-sized surface, and the origin is needed before the first pointer event.
   apply(canvas.clientWidth || window.innerWidth, canvas.clientHeight || window.innerHeight)
   // The canvases are fixed to the viewport, so the cached origin only ever
-  // changes when the viewport does — never during animation.
+  // changes when the viewport does 鈥?never during animation.
   window.addEventListener('resize', refreshOrigin, { passive: true })
   return () => {
     observer.disconnect()
@@ -344,6 +347,7 @@ function WhaleCanvas(): React.ReactElement {
       parts.push({
         ax: a.u, ay: a.v,
         cx: Math.random(), cy: Math.random(),
+        ox: 0, oy: 0,
         s: 0.5 + Math.random() * 1,
       })
     }
@@ -365,8 +369,26 @@ function WhaleCanvas(): React.ReactElement {
     const t0 = Date.now()
     let curAlpha = 0.10
     const TOUCH_R = 12 * 2.88
-    const MOUSE = { radius: 4.9, strength: 0.8, decay: 0.2, distort: 5 }
+    const MOUSE = { radius: 4.9, strength: 0.8, decay: 0.2, distort: 5, spinFalloff: 6 }
     const mst = { smX: 0, smY: 0, hasMoved: false, active: false, strength: 0 }
+    /** Smoothed pointer of the previous frame, in CSS px; NaN until the first sample. */
+    let prevX = NaN
+    let prevY = NaN
+    /** Low-passed pointer speed in world units per frame, for the scatter angle. */
+    let spinSpeed = 0
+    // The influence centre is a scalar field stamped at the pointer every frame and decayed
+    // in place: a "pheromone" map of the pointer's recent path. The push is the negative
+    // gradient of that field, so the centre follows the trail and the force is smooth
+    // everywhere — there is no polyline whose nearest point can jump from frame to frame
+    // (that discontinuity was what made slow movement jitter).
+    const FIELD_CELL = 12
+    const FIELD_DECAY = 0.94
+    const FIELD_REACH = 300
+    let fieldCols = 0
+    let fieldRows = 0
+    let field = new Float32Array(0)
+    let fieldKernel = new Float32Array(0)
+    let fieldKernelSize = 0
 
     const draw = (): void => {
       const w = box.width
@@ -413,8 +435,50 @@ function WhaleCanvas(): React.ReactElement {
       const unit = 0.0574 * Math.min(w, h)
       const whaleCx = ox + ww / 2
       const whaleCy = oy + size * 0.375
-      const mwx = (mst.smX - whaleCx) / unit
-      const mwy = (mst.smY - whaleCy) / unit
+      // Decay the whole field, then stamp the kernel at the pointer. A still pointer
+      // reaches a steady blob (so hovering keeps the original radial push), while moving
+      // pointers leave a ridge along their path that fades in about a second.
+      const cols = Math.ceil(w / FIELD_CELL) + 3
+      const rows = Math.ceil(h / FIELD_CELL) + 3
+      if (cols !== fieldCols || rows !== fieldRows) {
+        fieldCols = cols
+        fieldRows = rows
+        field = new Float32Array(cols * rows)
+        const kr = Math.ceil(FIELD_REACH / FIELD_CELL)
+        fieldKernelSize = kr * 2 + 1
+        fieldKernel = new Float32Array(fieldKernelSize * fieldKernelSize)
+        for (let ky = -kr; ky <= kr; ky += 1) {
+          for (let kx = -kr; kx <= kr; kx += 1) {
+            const rr = Math.sqrt(kx * kx + ky * ky) * FIELD_CELL
+            const kk = rr >= FIELD_REACH ? 0 : 1 - rr / FIELD_REACH
+            fieldKernel[(ky + kr) * fieldKernelSize + (kx + kr)] = kk * kk * kk
+          }
+        }
+      }
+      for (let k = 0; k < field.length; k += 1) field[k] *= FIELD_DECAY
+      if (hasMouse && !isNaN(mst.smX)) {
+        const cim = Math.round(mst.smX / FIELD_CELL) + 1
+        const cjm = Math.round(mst.smY / FIELD_CELL) + 1
+        const kr = (fieldKernelSize - 1) / 2
+        for (let ky = -kr; ky <= kr; ky += 1) {
+          const row = cjm + ky
+          if (row < 0 || row >= fieldRows) continue
+          const krow = (ky + kr) * fieldKernelSize + kr
+          for (let kx = -kr; kx <= kr; kx += 1) {
+            const col = cim + kx
+            if (col < 0 || col >= fieldCols) continue
+            field[row * fieldCols + col] += fieldKernel[krow + kx]
+          }
+        }
+      }
+
+      // Per-particle scatter fades with speed: at rest it is the old ±5 rad, at speed it
+      // has to shrink or it would blur the channel into noise. The speed itself is
+      // low-passed, so a tiny back-and-forth wiggle does not keep switching the angle and
+      // making the whole neighbourhood shiver.
+      const stepLen = isNaN(prevX) ? 0 : Math.hypot(mst.smX - prevX, mst.smY - prevY) / unit
+      spinSpeed += (stepLen - spinSpeed) * 0.10
+      const spin = MOUSE.distort / (1 + MOUSE.spinFalloff * spinSpeed)
 
       let touched = false
       if (hasMouse) {
@@ -430,6 +494,17 @@ function WhaleCanvas(): React.ReactElement {
       }
       const targetAlpha = touched ? 0.25 : 0.10
       curAlpha += (targetAlpha - curAlpha) * 0.08
+
+      // The offset chases the push target as a low-pass, the same shape as the pointer
+      // smoothing above: fast while the pointer presses, slow once it is gone. Nothing is
+      // ever assigned in one step, so a turning target drags the particle along smoothly
+      // and a released one drifts home instead of snapping.
+      const PUSH_RATE = 0.30
+      const RETURN_RATE = 0.05
+      // Cap on how far the offset may travel in one frame: a target that flips sides would
+      // otherwise still jump (up to ~0.3 of twice the peak). 12 px/frame = 360 px/s, fast
+      // enough for the channel, slow enough to read as motion instead of a teleport.
+      const MAX_STEP = 12
 
       for (let i = 0; i < N; i += 1) {
         const p = parts[i]
@@ -453,33 +528,74 @@ function WhaleCanvas(): React.ReactElement {
 
         const px = p.cx * w
         const py = p.cy * h
-        let fx = px
-        let fy = py
+        let tx = 0
+        let ty = 0
         if (D > 0.8) {
           const mEff = (D - 0.8) * 5
-          const pwx = (px - whaleCx) / unit
-          const pwy = (py - whaleCy) / unit
-          const dx = pwx - mwx
-          const dy = pwy - mwy
-          const dist = Math.sqrt(dx * dx + dy * dy)
-          if (dist < MOUSE.radius && dist > 0.001) {
-            const tt = 1 - dist / MOUSE.radius
-            const force = tt * tt * tt * mEff * mst.strength
-            const ang = Math.sin(i * 0.37 + now * 0.5) * MOUSE.distort
+          const ci = clamp(Math.round(px / FIELD_CELL) + 1, 1, fieldCols - 2)
+          const cj = clamp(Math.round(py / FIELD_CELL) + 1, 1, fieldRows - 2)
+          const idx = cj * fieldCols + ci
+          const f0 = field[idx]
+          if (f0 > 0.02) {
+            // Push away from the stamped trail: the negative gradient of the field.
+            const gx = field[idx + 1] - field[idx - 1]
+            const gy = field[idx + fieldCols] - field[idx - fieldCols]
+            const g2 = gx * gx + gy * gy
+            let ux: number
+            let uy: number
+            if (g2 > 1e-10) {
+              const inv = 1 / Math.sqrt(g2)
+              ux = -gx * inv
+              uy = -gy * inv
+            } else {
+              // Dead centre of a still pointer: fall back to the radial direction.
+              const rx = px - mst.smX
+              const ry = py - mst.smY
+              const rl = Math.sqrt(rx * rx + ry * ry)
+              if (rl > 0.001) {
+                ux = rx / rl
+                uy = ry / rl
+              } else {
+                ux = 1
+                uy = 0
+              }
+            }
+            const power = Math.min(1, f0 * (1 - FIELD_DECAY))
+            const ang = Math.sin(i * 0.37 + now * 0.5) * spin
             const ca = Math.cos(ang)
             const sa = Math.sin(ang)
-            const ux = dx / dist
-            const uy = dy / dist
-            fx = px + (ux * ca - uy * sa) * force * 2 * unit
-            fy = py + (ux * sa + uy * ca) * force * 2 * unit
+            const amp = power * mEff * mst.strength * 2 * unit
+            tx = (ux * ca - uy * sa) * amp
+            ty = (ux * sa + uy * ca) * amp
           }
         }
+        const rate = tx === 0 && ty === 0 ? RETURN_RATE : PUSH_RATE
+        let mvx = (tx - p.ox) * rate
+        let mvy = (ty - p.oy) * rate
+        const mv2 = mvx * mvx + mvy * mvy
+        if (mv2 > MAX_STEP * MAX_STEP) {
+          const s = MAX_STEP / Math.sqrt(mv2)
+          mvx *= s
+          mvy *= s
+        }
+        p.ox += mvx
+        p.oy += mvy
+        // Below a pixel the motion is invisible anyway; finish the return here instead of
+        // crawling for seconds on sub-pixel steps.
+        if (p.ox * p.ox + p.oy * p.oy < 1) {
+          p.ox = 0
+          p.oy = 0
+        }
+        const fx = px + p.ox
+        const fy = py + p.oy
 
         const half = (0.8 + p.s * 0.7) * 0.7 * 1.5
         g.globalAlpha = curAlpha
         g.fillStyle = 'rgb(' + rgb + ')'
         g.fillRect(fx - half, fy - half, half * 2, half * 2)
       }
+      prevX = mst.smX
+      prevY = mst.smY
       g.globalAlpha = 1
     }
 
