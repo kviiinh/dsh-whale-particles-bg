@@ -384,6 +384,7 @@ function WhaleCanvas(): React.ReactElement {
     const FIELD_CELL = 12
     const FIELD_DECAY = 0.94
     const FIELD_REACH = 300
+    const FIELD_MIN = 0.01
     let fieldCols = 0
     let fieldRows = 0
     let field = new Float32Array(0)
@@ -532,18 +533,33 @@ function WhaleCanvas(): React.ReactElement {
         let ty = 0
         if (D > 0.8) {
           const mEff = (D - 0.8) * 5
-          const ci = clamp(Math.round(px / FIELD_CELL) + 1, 1, fieldCols - 2)
-          const cj = clamp(Math.round(py / FIELD_CELL) + 1, 1, fieldRows - 2)
-          const idx = cj * fieldCols + ci
-          const f0 = field[idx]
-          if (f0 > 0.02) {
+          // Bilinear sample of the field and of its analytic gradient, so the push direction
+          // is continuous instead of stepping at cell borders (that stepping is what was
+          // left of the slow-motion jitter).
+          const cxf = px / FIELD_CELL + 1
+          const cyf = py / FIELD_CELL + 1
+          const i0 = clamp(Math.floor(cxf), 1, fieldCols - 3)
+          const j0 = clamp(Math.floor(cyf), 1, fieldRows - 3)
+          const fx = cxf - i0
+          const fy = cyf - j0
+          const row0 = j0 * fieldCols
+          const row1 = row0 + fieldCols
+          const f00 = field[row0 + i0]
+          const f10 = field[row0 + i0 + 1]
+          const f01 = field[row1 + i0]
+          const f11 = field[row1 + i0 + 1]
+          const fA = f00 + (f10 - f00) * fx
+          const fB = f01 + (f11 - f01) * fx
+          const f0 = fA + (fB - fA) * fy
+          const power = Math.min(1, f0 * (1 - FIELD_DECAY))
+          if (power > FIELD_MIN) {
             // Push away from the stamped trail: the negative gradient of the field.
-            const gx = field[idx + 1] - field[idx - 1]
-            const gy = field[idx + fieldCols] - field[idx - fieldCols]
+            const gx = (f10 - f00) + ((f11 - f01) - (f10 - f00)) * fy
+            const gy = (f01 - f00) + ((f11 - f10) - (f01 - f00)) * fx
             const g2 = gx * gx + gy * gy
             let ux: number
             let uy: number
-            if (g2 > 1e-10) {
+            if (g2 > 1e-12) {
               const inv = 1 / Math.sqrt(g2)
               ux = -gx * inv
               uy = -gy * inv
@@ -560,7 +576,6 @@ function WhaleCanvas(): React.ReactElement {
                 uy = 0
               }
             }
-            const power = Math.min(1, f0 * (1 - FIELD_DECAY))
             const ang = Math.sin(i * 0.37 + now * 0.5) * spin
             const ca = Math.cos(ang)
             const sa = Math.sin(ang)
