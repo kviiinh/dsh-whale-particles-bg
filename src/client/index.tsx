@@ -362,12 +362,32 @@ function WhaleCanvas(): React.ReactElement {
       mouse.x = e.clientX - box.originX
       mouse.y = e.clientY - box.originY
     }
+    // Dropping the sample is what stops the influence. Three signals drop it, because a bare
+    // mouseleave is not enough: an always-on-top window belonging to another application can
+    // sit over this page, and then the page sees neither mousemove nor a reliable mouseleave —
+    // the last sample would keep stamping the same spot and freeze a dent in the whale.
+    // Any of these clears the sample; the next mousemove restores it. There is deliberately no
+    // idle timer: a pointer resting on the whale must keep holding the particles away.
     const onLeave = (): void => {
       mouse.x = NaN
       mouse.y = NaN
     }
+    /** Crossing the page border: relatedTarget is null only when the pointer really left. */
+    const onOut = (e: MouseEvent): void => {
+      if (e.relatedTarget === null) onLeave()
+    }
+    /** Another window took the activation (a drag on it), so the pointer is no longer ours. */
+    const onBlur = (): void => {
+      onLeave()
+    }
+    const onVisibility = (): void => {
+      if (document.visibilityState === 'hidden') onLeave()
+    }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseleave', onLeave)
+    window.addEventListener('blur', onBlur)
+    document.addEventListener('mouseout', onOut, true)
+    document.addEventListener('visibilitychange', onVisibility)
 
     const t0 = Date.now()
     let curAlpha = 0.10
@@ -452,6 +472,9 @@ function WhaleCanvas(): React.ReactElement {
         mst.smX += (msx - mst.smX) * MOUSE.decay
         mst.smY += (msy - mst.smY) * MOUSE.decay
       }
+      // Every direction below derives from this centre. One NaN here would stick to a particle
+      // offset forever (it is drawn at NaN, i.e. invisible, and never springs back).
+      const centreOk = !isNaN(mst.smX)
 
       const D = 1 - Math.pow(1 - clamp((now - 0.3) / 2.5, 0, 1), 3)
       const unit = 0.0574 * Math.min(w, h)
@@ -520,8 +543,10 @@ function WhaleCanvas(): React.ReactElement {
       // has to shrink or it would blur the channel into noise. The speed itself is
       // low-passed, so a tiny back-and-forth wiggle does not keep switching the angle and
       // making the whole neighbourhood shiver.
-      const stepLen = isNaN(prevX) ? 0 : Math.hypot(mst.smX - prevX, mst.smY - prevY) / unit
-      spinSpeed += (stepLen - spinSpeed) * 0.10
+      const stepLen = !centreOk || isNaN(prevX) ? 0 : Math.hypot(mst.smX - prevX, mst.smY - prevY) / unit
+      // NaN would survive every later low-pass step and turn the scatter angle into NaN for
+      // the rest of the session. Reset instead.
+      spinSpeed = centreOk ? spinSpeed + (stepLen - spinSpeed) * 0.10 : 0
       const spin = MOUSE.distort / (1 + MOUSE.spinFalloff * spinSpeed)
 
       let touched = false
@@ -607,7 +632,7 @@ function WhaleCanvas(): React.ReactElement {
               const inv = 1 / Math.sqrt(g2)
               ux = -gx * inv
               uy = -gy * inv
-            } else {
+            } else if (centreOk) {
               // Dead centre of a still pointer: fall back to the radial direction.
               const rx = px - mst.smX
               const ry = py - mst.smY
@@ -619,6 +644,10 @@ function WhaleCanvas(): React.ReactElement {
                 ux = 1
                 uy = 0
               }
+            } else {
+              // No centre to be radial about (the sample was dropped mid-fade).
+              ux = 1
+              uy = 0
             }
             const ang = Math.sin(i * 0.37 + now * 0.5) * spin
             const ca = Math.cos(ang)
@@ -641,6 +670,14 @@ function WhaleCanvas(): React.ReactElement {
         }
         p.ox += p.vx * dt
         p.oy += p.vy * dt
+        // Every clamp below is false for NaN, so a NaN offset would draw the particle at NaN
+        // (invisible) with no way back. Restart it from its rest position instead.
+        if (p.ox !== p.ox || p.oy !== p.oy) {
+          p.ox = 0
+          p.oy = 0
+          p.vx = 0
+          p.vy = 0
+        }
         const off2 = p.ox * p.ox + p.oy * p.oy
         if (off2 > MAX_OFFSET * MAX_OFFSET) {
           const cl = MAX_OFFSET / Math.sqrt(off2)
@@ -685,6 +722,9 @@ function WhaleCanvas(): React.ReactElement {
       window.cancelAnimationFrame(raf)
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseleave', onLeave)
+      window.removeEventListener('blur', onBlur)
+      document.removeEventListener('mouseout', onOut, true)
+      document.removeEventListener('visibilitychange', onVisibility)
       disposeBox()
     }
   }, [])
