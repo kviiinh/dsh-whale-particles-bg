@@ -20,10 +20,20 @@ Topics: `dsh-plugin` · `deepseek-harness` · `cordis-plugin`
 
 | Layer | Content |
 | --- | --- |
-| Whale (z-index 1) | Particle field sampled from the WHALE SVG path (24×18 viewBox, 6× offscreen rasterization, sampled every 2px). Particles assemble from a scattered shell, breathe when idle, and are pushed away from the pointer inside a 4.9-world-unit radius along a rotating per-particle angle. |
+| Whale (z-index 1) | Particle field sampled from the WHALE SVG path (24×18 viewBox, 6× offscreen rasterization, sampled every 2px). Particles assemble from a scattered shell, breathe when idle, and are pushed aside by a decaying scalar field left along the pointer's path: slow drags stay smooth, fast sweeps cut a channel that closes again in about a second (see [How the pointer wake works](#how-the-pointer-wake-works)). |
 | Dot grid (z-index 0) | 90px square lattice with neighbour lines and a 140px pointer attraction that swells the dots. |
 
 Both layers are fixed, full-viewport, click-through canvases. The theme is read from `body[data-ds-dark-theme]` on every frame (dark: `rgb(215,232,255)`, light: `rgb(50,82,135)`), so light/dark follows with no subscription. Animation runs on `requestAnimationFrame` throttled to ~30fps, which also suspends it while the tab is hidden.
+
+### How the pointer wake works
+
+The pointer never moves a particle directly. Three stages:
+
+1. **Field.** A coarse scalar grid over the canvas (12 px cells) is multiplied by `0.94` every frame, and the pointer stamps a 300 px cubic kernel into it (`(1 - r/300)^3`). The field is therefore a "pheromone" map of the pointer's path over roughly the last second, not a single point.
+2. **Force.** Each particle samples the field bilinearly and uses its negative gradient as the push direction and its value as the strength (`power = min(1, F * (1 - 0.94))`, with a `0.01` dead zone that drops sub-pixel pushes). Stamps are laid along the frame's movement (`ceil(delta / 40)` of them, at most 8) and scaled by a low-passed pointer speed, so a fast sweep cuts deeper than a slow drag.
+3. **Motion.** The push is an acceleration, not a target position: `v += ((target - offset)*k - v*c)*dt`, `offset += v*dt`, with `k/c = 120/14` while pushed and `2.5/2.2` on release, plus a `2000 px/s` speed cap and a `150 px` offset cap so a released particle cannot coast off the whale.
+
+A still pointer settles into a steady blob whose normalised value reproduces the original radial falloff exactly (peak `2 * unit * strength` ≈ 99 px at 1920×1080, about 12 px at half the radius, zero at the edge), so hovering feels unchanged. Measured overhead: +15 us per frame on a slow drag to +50 us on a fast sweep (0.04 %-0.15 % of a 30 fps frame at 1778 particles).
 
 ### Install
 
@@ -87,7 +97,7 @@ The community market ([dsh-market](https://github.com/dsh-market/dsh-market)) is
 
 鲸鱼粒子背景 —— dsh web 客户端的**正式插件包**（bundle 形态，可 `dsh plugin add` 一键安装，替代只在进程内存里存活的动态 Cordis 插件）。
 
-- **鲸鱼层**（z-index 1）：从 WHALE 路径栅格化采样的粒子场（24×18 viewBox，6 倍离屏栅格化、每 2px 采样），入场从散点聚合、空闲呼吸与尾部波浪、指针 4.9 世界单位半径内的旋转斥力
+- **鲸鱼层**（z-index 1）：从 WHALE 路径栅格化采样的粒子场（24×18 viewBox，6 倍离屏栅格化、每 2px 采样），入场从散点聚合、空闲呼吸与尾部波浪；指针经过时沿路径留下一条会缓慢合拢的通道（见下文「指针作用算法」）
 - **点线网格层**（z-index 0）：90px 点阵 + 邻居连线 + 指针 140px 吸引/放大
 - **主题适配**：每帧读 `body[data-ds-dark-theme]`；深色 `rgb(215,232,255)` / 浅色 `rgb(50,82,135)`
 - **挂载点**：`shell.overlay`（由 `@deepseek-ai/dsh-client-ui-layout` 声明的 root 作用域 list 槽位），两个全屏 fixed canvas、`pointer-events: none`
@@ -112,6 +122,16 @@ The community market ([dsh-market](https://github.com/dsh-market/dsh-market)) is
 | `lib/` | 构建产物：`index.js`（node 半）+ `client.js`（`__ModuleLoader__` 工厂 bundle）+ sourcemap |
 | `scripts/build.sh` | 在指定 checkout 中重新构建、拷回产物，并做脱敏 + 校验 |
 | `scripts/sanitize-artifacts.mjs` | 清除 `lib/` 里的本机信息，若有残留则让构建失败 |
+
+### 指针作用算法
+
+指针从不直接改粒子位置，分三步：
+
+1. **场**：画布上铺一张粗网格标量场（12px 一格），每帧整场乘 `0.94` 衰减，并在指针处盖一个 300px 的三次方核（`(1 - r/300)³`）。于是场是「指针过去约 1 秒走过的路径」的地图，而不是一个点。
+2. **力**：每颗粒子双线性采样场，取场的**负梯度**作为推力方向、场值作为力度（`power = min(1, F × (1 - 0.94))`，低于 `0.01` 的死区直接当作无推力）。盖章点沿本帧的位移铺开（`ceil(位移 / 40)` 个，最多 8 个），并按低通后的指针速度做增益——快划比慢拖划得更深。
+3. **动**：推力是加速度而不是目标位置——`v += ((目标 - 位移)·k - v·c)·dt`，`位移 += v·dt`；有推力时 `k/c = 120/14`，松手后 `2.5/2.2`，另有 `2000 px/s` 速度上限和 `150px` 位移上限，保证粒子不会被惯性甩出鲸鱼轮廓。
+
+指针静止时场会稳定成一个小包，归一化后与原本的径向曲线完全一致（1920×1080 下峰值 `2 × unit × strength` ≈ 99px、半个半径处约 12px、边缘 0），所以悬停手感不变。实测开销：慢速拖动约 +15µs、快速掠过约 +50µs（1778 颗粒子，占 30fps 帧预算的 0.04%–0.15%）。
 
 ### 安装
 
