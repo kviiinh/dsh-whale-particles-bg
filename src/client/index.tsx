@@ -376,6 +376,8 @@ function WhaleCanvas(): React.ReactElement {
     let prevY = NaN
     /** Low-passed pointer speed in world units per frame, for the scatter angle. */
     let spinSpeed = 0
+    /** Low-passed pointer speed in CSS px per frame, for the deposit gain. */
+    let stampSpeed = 0
     // The influence centre is a scalar field stamped at the pointer every frame and decayed
     // in place: a "pheromone" map of the pointer's recent path. The push is the negative
     // gradient of that field, so the centre follows the trail and the force is smooth
@@ -385,6 +387,14 @@ function WhaleCanvas(): React.ReactElement {
     const FIELD_DECAY = 0.94
     const FIELD_REACH = 300
     const FIELD_MIN = 0.01
+    // A fast sweep has only a few frames to deposit, so scale the dose with (low-passed)
+    // pointer speed and lay the stamps along the frame's movement instead of at one point.
+    const STAMP_GAIN = 4
+    const STAMP_GAIN_MAX = 10
+    const STAMP_GAIN_FLOOR = 0.35
+    const STAMP_SPEED_LP = 0.15
+    const STAMP_STEP_PX = 40
+    const STAMP_MAX = 8
     let fieldCols = 0
     let fieldRows = 0
     let field = new Float32Array(0)
@@ -458,17 +468,32 @@ function WhaleCanvas(): React.ReactElement {
       }
       for (let k = 0; k < field.length; k += 1) field[k] *= FIELD_DECAY
       if (hasMouse && !isNaN(mst.smX)) {
-        const cim = Math.round(mst.smX / FIELD_CELL) + 1
-        const cjm = Math.round(mst.smY / FIELD_CELL) + 1
+        // Deposit along the frame's movement so a fast sweep leaves a continuous ridge,
+        // and scale the dose with the low-passed speed: a faster cut should cut deeper.
+        const dxp = isNaN(prevX) ? 0 : mst.smX - prevX
+        const dyp = isNaN(prevY) ? 0 : mst.smY - prevY
+        const stepPx = Math.sqrt(dxp * dxp + dyp * dyp)
+        stampSpeed += (stepPx - stampSpeed) * STAMP_SPEED_LP
+        const rel = stampSpeed / 33 - STAMP_GAIN_FLOOR
+        const gain = rel <= 0 ? 1 : Math.min(STAMP_GAIN_MAX, 1 + STAMP_GAIN * Math.pow(rel, 1.1))
+        const nStamp = Math.min(STAMP_MAX, Math.max(1, Math.ceil(stepPx / STAMP_STEP_PX)))
+        const wStamp = gain / nStamp
         const kr = (fieldKernelSize - 1) / 2
-        for (let ky = -kr; ky <= kr; ky += 1) {
-          const row = cjm + ky
-          if (row < 0 || row >= fieldRows) continue
-          const krow = (ky + kr) * fieldKernelSize + kr
-          for (let kx = -kr; kx <= kr; kx += 1) {
-            const col = cim + kx
-            if (col < 0 || col >= fieldCols) continue
-            field[row * fieldCols + col] += fieldKernel[krow + kx]
+        for (let s = 1; s <= nStamp; s += 1) {
+          const frac = s / nStamp
+          const sx = isNaN(prevX) ? mst.smX : prevX + dxp * frac
+          const sy = isNaN(prevY) ? mst.smY : prevY + dyp * frac
+          const cim = Math.round(sx / FIELD_CELL) + 1
+          const cjm = Math.round(sy / FIELD_CELL) + 1
+          for (let ky = -kr; ky <= kr; ky += 1) {
+            const row = cjm + ky
+            if (row < 0 || row >= fieldRows) continue
+            const krow = (ky + kr) * fieldKernelSize + kr
+            for (let kx = -kr; kx <= kr; kx += 1) {
+              const col = cim + kx
+              if (col < 0 || col >= fieldCols) continue
+              field[row * fieldCols + col] += fieldKernel[krow + kx] * wStamp
+            }
           }
         }
       }
@@ -505,7 +530,7 @@ function WhaleCanvas(): React.ReactElement {
       // Cap on how far the offset may travel in one frame: a target that flips sides would
       // otherwise still jump (up to ~0.3 of twice the peak). 12 px/frame = 360 px/s, fast
       // enough for the channel, slow enough to read as motion instead of a teleport.
-      const MAX_STEP = 12
+      const MAX_STEP = 20
 
       for (let i = 0; i < N; i += 1) {
         const p = parts[i]

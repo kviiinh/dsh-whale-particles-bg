@@ -1,6 +1,6 @@
 {
   "name": "dsh-whale-particles-bg",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Animated whale particle background for the DeepSeek Harness (dsh) Web UI: the WHALE-silhouette particle field with pointer repulsion plus the official dot-grid layer, registered into the frame-wide shell.overlay seat.",
   "license": "MIT",
   "type": "module",
