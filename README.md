@@ -12,7 +12,7 @@ Topics: `dsh-plugin` · `deepseek-harness` · `cordis-plugin`
 
 ### Preview
 
-7.5-second capture of the whale field assembling from its scattered shell, breathing at idle, and being pushed around by the pointer (`src/preview.gif`, animated GIF, 900×487, 12fps, 7.5s, 3.2 MB):
+7.5-second capture of the whale field assembling from its scattered shell, breathing at idle, and the pointer carving a channel that slowly closes again (`src/preview.gif`, animated GIF, 900×487, 12fps, 7.5s, 3.2 MB):
 
 ![whale particle background preview](https://raw.githubusercontent.com/kviiinh/dsh-whale-particles-bg/main/src/preview.gif)
 
@@ -61,7 +61,7 @@ scripts/build.sh /path/to/deepseek-harness     # or: DSH_CHECKOUT=/path/to/deeps
 
 The checkout is always named explicitly — the script assumes no personal directory layout. It stages the sources into `<checkout>/packages/client/dsh-whale-particles-bg/`, runs `pnpm install` → `tsc -b` → `tsdown --env.DSH_BUILD_FACE client`, copies `lib/` back here, then removes the staged copy and restores `pnpm-lock.yaml` and `pnpm-workspace.yaml` from a snapshot taken up front — including when the build fails.
 
-The last step is `scripts/sanitize-artifacts.mjs`, which scrubs machine-specific content out of the built artifacts and **fails the build** if any survives. It exists because the client preset writes virtual module ids containing the absolute source path (for example `\0dsh-global-css:<virtual>/global.css.mjs`) into a `//#region` comment inside `lib/client.js` — a string every browser loading the plugin downloads, which would leak the host user name, home layout and checkout location. The scrub also rewrites the sourcemap's `sources` so they resolve from `lib/` into this package instead of naming the build staging path.
+The last step is `scripts/sanitize-artifacts.mjs`, which scrubs machine-specific content out of the built artifacts and **fails the build** if any survives. It exists because the client preset writes virtual module ids containing the absolute source path (for example `\0dsh-global-css:<virtual>/global.css.mjs`) into a `//#region` comment inside `lib/client.js` — a string every browser loading the plugin downloads, which would leak the host user name, home layout and checkout location. Should a build emit a sourcemap, the scrub also rewrites its `sources` so they resolve from `lib/` into this package instead of naming the build staging path.
 
 ### Layout
 
@@ -73,7 +73,7 @@ The last step is `scripts/sanitize-artifacts.mjs`, which scrubs machine-specific
 | `src/preview.gif` | Animated GIF preview (900×487, 12fps) embedded by the Preview section above |
 | `src/index.ts` | Node half: an empty `apply` (a pure UI plugin only needs to exist in the Loader) |
 | `cordis.patch.yml` | The bundle layer: inserts the `whale-particles-bg` row |
-| `lib/` | Built artifacts: `index.js` (node half) + `client.js` + `client.js.map` |
+| `lib/` | Built artifacts: `index.js` (node half) + `client.js` (the `__ModuleLoader__` factory bundle) |
 | `scripts/build.sh` | Rebuild against a checkout, copy the artifacts back, then sanitize them |
 | `scripts/sanitize-artifacts.mjs` | Strip machine-specific content from `lib/` and fail the build if any survives |
 
@@ -105,7 +105,7 @@ The community market ([dsh-market](https://github.com/dsh-market/dsh-market)) is
 
 ### 预览
 
-7.5 秒录屏：粒子从散点聚合、空闲呼吸，以及指针进入时的旋转斥力（动图 `src/preview.gif`，900×487，12fps，7.5s，3.2 MB）：
+7.5 秒录屏：粒子从散点聚合、空闲呼吸，以及指针划过时切开的通道缓慢合拢（动图 `src/preview.gif`，900×487，12fps，7.5s，3.2 MB）：
 
 ![鲸鱼粒子背景预览](https://raw.githubusercontent.com/kviiinh/dsh-whale-particles-bg/main/src/preview.gif)
 
@@ -119,7 +119,7 @@ The community market ([dsh-market](https://github.com/dsh-market/dsh-market)) is
 | `src/preview.gif` | 上方「预览」内嵌的动图（900×487，12fps） |
 | `src/index.ts` | Node 半边：空 `apply`（纯 UI 插件只需在 Loader 里出现） |
 | `cordis.patch.yml` | bundle 层：插入 `whale-particles-bg` 这一行 |
-| `lib/` | 构建产物：`index.js`（node 半）+ `client.js`（`__ModuleLoader__` 工厂 bundle）+ sourcemap |
+| `lib/` | 构建产物：`index.js`（node 半）+ `client.js`（`__ModuleLoader__` 工厂 bundle） |
 | `scripts/build.sh` | 在指定 checkout 中重新构建、拷回产物，并做脱敏 + 校验 |
 | `scripts/sanitize-artifacts.mjs` | 清除 `lib/` 里的本机信息，若有残留则让构建失败 |
 
@@ -162,7 +162,7 @@ scripts/build.sh /path/to/deepseek-harness     # 或：DSH_CHECKOUT=/path/to/dee
 
 checkout 必须显式给出——脚本不假设任何个人目录布局。流程：把源码暂存到 `<checkout>/packages/client/dsh-whale-particles-bg/` → `pnpm install` → `tsc -b` → `tsdown --env.DSH_BUILD_FACE client` → 把 `lib/` 拷回本目录 → 删除暂存目录，并从**开头的快照**恢复 `pnpm-lock.yaml` 与 `pnpm-workspace.yaml`（失败时同样会还原）。
 
-最后一步跑 `scripts/sanitize-artifacts.mjs`：把产物里的本机相关信息脱敏，**只要还有残留就让构建失败**。之所以需要它：客户端预设会把绝对源码路径写进虚拟模块 id（例如 `\0dsh-global-css:<virtual>/global.css.mjs`），出现在 `lib/client.js` 的 `//#region` 注释里——而这是每个加载插件的浏览器都会下载的字符串，会泄漏宿主用户名、家目录布局与 checkout 位置。脱敏同时会把 sourcemap 的 `sources` 改写成从 `lib/` 指向本包 `src/`，不再出现构建暂存路径。
+最后一步跑 `scripts/sanitize-artifacts.mjs`：把产物里的本机相关信息脱敏，**只要还有残留就让构建失败**。之所以需要它：客户端预设会把绝对源码路径写进虚拟模块 id（例如 `\0dsh-global-css:<virtual>/global.css.mjs`），出现在 `lib/client.js` 的 `//#region` 注释里——而这是每个加载插件的浏览器都会下载的字符串，会泄漏宿主用户名、家目录布局与 checkout 位置。构建如果产出了 sourcemap，脱敏同时会把它的 `sources` 改写成从 `lib/` 指向本包 `src/`，不再出现构建暂存路径。
 
 **为什么必须暂存进 checkout**：共享 tsdown 预设 `packages/client/tsdown.client.ts` 会按名字在 `packages/*/*` 下查找包清单，工作区之外的包会直接抛错（`no packages/*/*/package.json declares the name ...`）。
 
