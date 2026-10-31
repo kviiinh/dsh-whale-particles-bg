@@ -49,9 +49,12 @@ interface Particle {
   /** Current position in viewport space, normalized. */
   cx: number
   cy: number
-  /** Leftover pointer offset in CSS px; decays every frame so the particle drifts home. */
+  /** Pointer offset in CSS px, integrated from the velocity below. */
   ox: number
   oy: number
+  /** Offset velocity in px/s: the force model gives particles inertia. */
+  vx: number
+  vy: number
   /** Per-particle render-size seed. */
   readonly s: number
 }
@@ -347,7 +350,7 @@ function WhaleCanvas(): React.ReactElement {
       parts.push({
         ax: a.u, ay: a.v,
         cx: Math.random(), cy: Math.random(),
-        ox: 0, oy: 0,
+        ox: 0, oy: 0, vx: 0, vy: 0,
         s: 0.5 + Math.random() * 1,
       })
     }
@@ -521,16 +524,17 @@ function WhaleCanvas(): React.ReactElement {
       const targetAlpha = touched ? 0.25 : 0.10
       curAlpha += (targetAlpha - curAlpha) * 0.08
 
-      // The offset chases the push target as a low-pass, the same shape as the pointer
-      // smoothing above: fast while the pointer presses, slow once it is gone. Nothing is
-      // ever assigned in one step, so a turning target drags the particle along smoothly
-      // and a released one drifts home instead of snapping.
-      const PUSH_RATE = 0.30
-      const RETURN_RATE = 0.05
-      // Cap on how far the offset may travel in one frame: a target that flips sides would
-      // otherwise still jump (up to ~0.3 of twice the peak). 12 px/frame = 360 px/s, fast
-      // enough for the channel, slow enough to read as motion instead of a teleport.
-      const MAX_STEP = 20
+      // Force model (steering): the field is an acceleration, not a target position, so a
+      // particle carries velocity and inertia. Stiff while pressed, soft on release, with
+      // a speed clamp so a very deep field cannot fling it away.
+      const K_PUSH = 120
+      const C_PUSH = 14
+      const K_HOME = 2.5
+      const C_HOME = 2.2
+      const MAX_SPEED = 2000
+      // Safety net: the push is bounded to ~99 px, but the integrator can overshoot. Keep the
+      // offset inside a sane radius so a released particle cannot coast off the whale.
+      const MAX_OFFSET = 150
 
       for (let i = 0; i < N; i += 1) {
         const p = parts[i]
@@ -609,22 +613,34 @@ function WhaleCanvas(): React.ReactElement {
             ty = (ux * sa + uy * ca) * amp
           }
         }
-        const rate = tx === 0 && ty === 0 ? RETURN_RATE : PUSH_RATE
-        let mvx = (tx - p.ox) * rate
-        let mvy = (ty - p.oy) * rate
-        const mv2 = mvx * mvx + mvy * mvy
-        if (mv2 > MAX_STEP * MAX_STEP) {
-          const s = MAX_STEP / Math.sqrt(mv2)
-          mvx *= s
-          mvy *= s
+        const pushed = tx !== 0 || ty !== 0
+        const k = pushed ? K_PUSH : K_HOME
+        const c = pushed ? C_PUSH : C_HOME
+        p.vx += ((tx - p.ox) * k - p.vx * c) * dt
+        p.vy += ((ty - p.oy) * k - p.vy * c) * dt
+        const sp2 = p.vx * p.vx + p.vy * p.vy
+        if (sp2 > MAX_SPEED * MAX_SPEED) {
+          const cl = MAX_SPEED / Math.sqrt(sp2)
+          p.vx *= cl
+          p.vy *= cl
         }
-        p.ox += mvx
-        p.oy += mvy
+        p.ox += p.vx * dt
+        p.oy += p.vy * dt
+        const off2 = p.ox * p.ox + p.oy * p.oy
+        if (off2 > MAX_OFFSET * MAX_OFFSET) {
+          const cl = MAX_OFFSET / Math.sqrt(off2)
+          p.ox *= cl
+          p.oy *= cl
+          p.vx *= cl
+          p.vy *= cl
+        }
         // Below a pixel the motion is invisible anyway; finish the return here instead of
         // crawling for seconds on sub-pixel steps.
         if (p.ox * p.ox + p.oy * p.oy < 1) {
           p.ox = 0
           p.oy = 0
+          p.vx = 0
+          p.vy = 0
         }
         const fx = px + p.ox
         const fy = py + p.oy
