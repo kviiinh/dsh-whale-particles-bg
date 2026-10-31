@@ -398,6 +398,7 @@ function WhaleCanvas(): React.ReactElement {
     const STAMP_SPEED_LP = 0.15
     const STAMP_STEP_PX = 40
     const STAMP_MAX = 8
+    const STAMP_JUMP_PX = 800
     let fieldCols = 0
     let fieldRows = 0
     let field = new Float32Array(0)
@@ -435,14 +436,21 @@ function WhaleCanvas(): React.ReactElement {
       const targetStrength = mst.active ? MOUSE.strength : 0
       const dt = 1 / 30
       mst.strength += (targetStrength - mst.strength) * (1 - Math.pow(0.05, dt))
-      if (mst.hasMoved) {
-        if (mst.strength < 0.01) {
-          mst.smX = msx
-          mst.smY = msy
-        } else {
-          mst.smX += (msx - mst.smX) * MOUSE.decay
-          mst.smY += (msy - mst.smY) * MOUSE.decay
-        }
+      if (!hasMouse) {
+        // Blank the smoothed centre while the pointer is away: the stamp guard then stops, and
+        // the next sample snaps instead of smoothing from a stale position.
+        mst.smX = NaN
+        mst.smY = NaN
+      } else if (isNaN(mst.smX) || mst.strength < 0.01) {
+        // First sample, or back after a release. Snapping is required here: smoothing from the
+        // old position would either spread the NaN left by mouseleave through smX forever
+        // (silently killing the effect until a reload) or drag a false channel across the
+        // whole canvas, amplified by the speed gain.
+        mst.smX = msx
+        mst.smY = msy
+      } else {
+        mst.smX += (msx - mst.smX) * MOUSE.decay
+        mst.smY += (msy - mst.smY) * MOUSE.decay
       }
 
       const D = 1 - Math.pow(1 - clamp((now - 0.3) / 2.5, 0, 1), 3)
@@ -473,9 +481,16 @@ function WhaleCanvas(): React.ReactElement {
       if (hasMouse && !isNaN(mst.smX)) {
         // Deposit along the frame's movement so a fast sweep leaves a continuous ridge,
         // and scale the dose with the low-passed speed: a faster cut should cut deeper.
-        const dxp = isNaN(prevX) ? 0 : mst.smX - prevX
-        const dyp = isNaN(prevY) ? 0 : mst.smY - prevY
-        const stepPx = Math.sqrt(dxp * dxp + dyp * dyp)
+        let dxp = isNaN(prevX) ? 0 : mst.smX - prevX
+        let dyp = isNaN(prevY) ? 0 : mst.smY - prevY
+        let stepPx = Math.sqrt(dxp * dxp + dyp * dyp)
+        if (stepPx > STAMP_JUMP_PX) {
+          // A teleport (the pointer came back somewhere else): stamp once instead of drawing
+          // a ridge along a jump that never happened.
+          dxp = 0
+          dyp = 0
+          stepPx = 0
+        }
         stampSpeed += (stepPx - stampSpeed) * STAMP_SPEED_LP
         const rel = stampSpeed / 33 - STAMP_GAIN_FLOOR
         const gain = rel <= 0 ? 1 : Math.min(STAMP_GAIN_MAX, 1 + STAMP_GAIN * Math.pow(rel, 1.1))
